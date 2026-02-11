@@ -5,7 +5,7 @@ FROM node:18-alpine
 WORKDIR /app
 
 # Install dependencies for sharp (image processing)
-RUN apk add --no-cache vips-dev jpeg-dev png-dev python3 make g++ libc6-compat
+RUN apk add --no-cache vips-dev jpeg-dev libpng-dev python3 make g++ libc6-compat
 
 # Copy package files
 COPY package*.json ./
