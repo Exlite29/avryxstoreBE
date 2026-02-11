@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install)",
+      "Bash(node -e \"require\\(''./src/app.js''\\)\")",
+      "Bash(node --trace-warnings src/app.js)",
+      "Bash(npm install pg dotenv express cors helmet bcryptjs jsonwebtoken)",
+      "Bash(node -c src/app.js)",
+      "Bash(node db-test.js)",
+      "Bash(node src/app.js)",
+      "Bash(npm install sqlite3)",
+      "Bash(npm install sqlite)",
+      "Bash(node test-db.js)",
+      "Bash(node test-full.js)",
+      "Bash(node minimal-server.js)",
+      "Bash(node test-routes.js)"
+    ]
+  }
+}

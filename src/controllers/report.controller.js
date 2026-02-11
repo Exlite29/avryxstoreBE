@@ -1,0 +1,75 @@
+const reportService = require("../services/report.service");
+const { success, error } = require("../utils/apiResponse");
+
+const getSalesReport = async (req, res) => {
+  try {
+    const options = { ...req.query, storeId: req.user.storeId };
+    const report = await reportService.getSalesReport(options);
+    res.json(success(report));
+  } catch (err) {
+    res.status(500).json(error(err.message));
+  }
+};
+
+const getTopProducts = async (req, res) => {
+  try {
+    const options = { ...req.query, storeId: req.user.storeId };
+    const report = await reportService.getTopProductsReport(options);
+    res.json(success(report));
+  } catch (err) {
+    res.status(500).json(error(err.message));
+  }
+};
+
+const getInventoryReport = async (req, res) => {
+  try {
+    const options = { ...req.query, storeId: req.user.storeId };
+    const report = await reportService.getInventoryReport(options);
+    res.json(success(report));
+  } catch (err) {
+    res.status(500).json(error(err.message));
+  }
+};
+
+const getDailySalesSummary = async (req, res) => {
+  try {
+    const { date } = req.query;
+    const targetDate = date ? new Date(date) : new Date();
+    const summary = await reportService.getDailySalesSummary(
+      targetDate,
+      req.user.storeId,
+    );
+    res.json(success(summary));
+  } catch (err) {
+    res.status(500).json(error(err.message));
+  }
+};
+
+const getCashFlowReport = async (req, res) => {
+  try {
+    const options = { ...req.query, storeId: req.user.storeId };
+    const report = await reportService.getCashFlowReport(options);
+    res.json(success(report));
+  } catch (err) {
+    res.status(500).json(error(err.message));
+  }
+};
+
+const getScannerMetrics = async (req, res) => {
+  try {
+    const options = { ...req.query, storeId: req.user.storeId };
+    const metrics = await reportService.getScannerMetrics(options);
+    res.json(success(metrics));
+  } catch (err) {
+    res.status(500).json(error(err.message));
+  }
+};
+
+module.exports = {
+  getSalesReport,
+  getTopProducts,
+  getInventoryReport,
+  getDailySalesSummary,
+  getCashFlowReport,
+  getScannerMetrics,
+};

@@ -1,0 +1,12 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = "postgresql://postgres:your_password_here@localhost:5432/sari_sari_store?schema=public"
+}
+
+model Test {
+  id String @id @default(uuid())
+}
