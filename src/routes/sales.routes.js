@@ -20,6 +20,12 @@ router.get(
 );
 
 router.get(
+  "/daily-summary",
+  requirePermission("view_reports"),
+  salesController.getDailySummary,
+);
+
+router.get(
   "/:id",
   requirePermission("manage_sales"),
   salesController.getSaleById,

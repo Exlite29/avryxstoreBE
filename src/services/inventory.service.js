@@ -26,7 +26,9 @@ const addStock = async (
     [quantity, productId],
   );
 
-  return await database.get("SELECT * FROM inventory WHERE id = ?", [result.lastID]);
+  return await database.get("SELECT * FROM inventory WHERE id = ?", [
+    result.lastID,
+  ]);
 };
 
 const removeStock = async (productId, { quantity, reason }) => {
@@ -102,29 +104,42 @@ const getAllInventory = async (options = {}) => {
 
   if (expiringSoon) {
     const days = expiringSoon.days || 30;
-    whereClauses.push(`i.expiry_date IS NOT NULL AND i.expiry_date <= date('now', '+${days} days')`);
+    whereClauses.push(
+      `i.expiry_date IS NOT NULL AND i.expiry_date <= date('now', '+${days} days')`,
+    );
   }
 
   const whereClause = whereClauses.join(" AND ");
 
+  // Get all products with their total inventory (LEFT JOIN to include products without inventory)
+  const query = `
+    SELECT 
+      p.id as product_id,
+      p.name as product_name,
+      p.barcode,
+      p.unit_price,
+      p.low_stock_threshold,
+      p.stock_quantity,
+      COALESCE(SUM(i.quantity), 0) as total_inventory_qty,
+      MIN(i.expiry_date) as earliest_expiry
+    FROM products p
+    LEFT JOIN inventory i ON p.id = i.product_id
+    WHERE ${whereClause}
+    GROUP BY p.id
+    ORDER BY p.name ASC
+    LIMIT ? OFFSET ?
+  `;
+
+  const rows = await database.all(query, [...params, parseInt(limit), offset]);
+
+  // Get total count
   const countQuery = `
     SELECT COUNT(*) as count
-    FROM inventory i
-    JOIN products p ON i.product_id = p.id
+    FROM products p
     WHERE ${whereClause}
   `;
   const countResult = await database.get(countQuery, params);
   const total = parseInt(countResult.count);
-
-  const query = `
-    SELECT i.*, p.name as product_name, p.barcode, p.unit_price, p.low_stock_threshold
-    FROM inventory i
-    JOIN products p ON i.product_id = p.id
-    WHERE ${whereClause}
-    ORDER BY i.expiry_date ASC LIMIT ? OFFSET ?
-  `;
-  
-  const rows = await database.all(query, [...params, parseInt(limit), offset]);
 
   return {
     inventory: rows,
@@ -156,7 +171,9 @@ const adjustStock = async (productId, adjustment, reason) => {
     [adjustment.adjustment, productId],
   );
 
-  return await database.get("SELECT * FROM inventory WHERE id = ?", [result.lastID]);
+  return await database.get("SELECT * FROM inventory WHERE id = ?", [
+    result.lastID,
+  ]);
 };
 
 const getStockMovements = async (productId, options = {}) => {

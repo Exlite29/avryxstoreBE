@@ -4,6 +4,12 @@ const { success, error, created, paginated } = require("../utils/apiResponse");
 const addStock = async (req, res) => {
   try {
     const { productId } = req.params;
+
+    // Validate productId
+    if (!productId || productId === "undefined" || productId === "null") {
+      return res.status(400).json(error("Valid product ID is required"));
+    }
+
     const inventory = await inventoryService.addStock(productId, req.body);
     res.status(201).json(created(inventory, "Stock added successfully"));
   } catch (err) {
@@ -14,6 +20,12 @@ const addStock = async (req, res) => {
 const removeStock = async (req, res) => {
   try {
     const { productId } = req.params;
+
+    // Validate productId
+    if (!productId || productId === "undefined" || productId === "null") {
+      return res.status(400).json(error("Valid product ID is required"));
+    }
+
     const { quantity, reason } = req.body;
     const result = await inventoryService.removeStock(productId, {
       quantity,
@@ -38,6 +50,12 @@ const getInventory = async (req, res) => {
 const getProductInventory = async (req, res) => {
   try {
     const { productId } = req.params;
+
+    // Validate productId
+    if (!productId || productId === "undefined" || productId === "null") {
+      return res.status(400).json(error("Valid product ID is required"));
+    }
+
     const inventory = await inventoryService.getInventoryByProduct(productId);
     res.json(success(inventory));
   } catch (err) {
@@ -48,6 +66,12 @@ const getProductInventory = async (req, res) => {
 const adjustStock = async (req, res) => {
   try {
     const { productId } = req.params;
+
+    // Validate productId
+    if (!productId || productId === "undefined" || productId === "null") {
+      return res.status(400).json(error("Valid product ID is required"));
+    }
+
     const { adjustment, batchNumber, location, reason } = req.body;
     const inventory = await inventoryService.adjustStock(
       productId,
@@ -63,6 +87,12 @@ const adjustStock = async (req, res) => {
 const getStockMovements = async (req, res) => {
   try {
     const { productId } = req.params;
+
+    // Validate productId
+    if (!productId || productId === "undefined" || productId === "null") {
+      return res.status(400).json(error("Valid product ID is required"));
+    }
+
     const movements = await inventoryService.getStockMovements(
       productId,
       req.query,

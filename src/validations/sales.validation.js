@@ -5,7 +5,8 @@ const createSaleSchema = {
     errorMessage: "At least one item is required",
   },
   "items.*.product_id": {
-    isUUID: true,
+    isInt: { min: 1 },
+    toInt: true,
     errorMessage: "Valid product ID is required for each item",
   },
   "items.*.quantity": {
@@ -22,6 +23,11 @@ const createSaleSchema = {
     isIn: ["cash", "card", "gcash", "paymaya", "credit"],
     errorMessage: "Invalid payment method",
   },
+  amount_paid: {
+    isFloat: { min: 0 },
+    toFloat: true,
+    errorMessage: "Amount paid must be a non-negative number",
+  },
   discount: {
     optional: true,
     isFloat: { min: 0 },
@@ -36,8 +42,9 @@ const createSaleSchema = {
   },
   customer_id: {
     optional: true,
-    isUUID: true,
-    errorMessage: "Customer ID must be a valid UUID",
+    isInt: { min: 1 },
+    toInt: true,
+    errorMessage: "Customer ID must be a valid number",
   },
   notes: {
     optional: true,

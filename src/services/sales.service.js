@@ -15,6 +15,7 @@ const initializeDb = async () => {
 const createSale = async ({
   items,
   paymentMethod,
+  amountPaid,
   discount = 0,
   customerId,
   notes,
@@ -47,7 +48,9 @@ const createSale = async ({
       }
 
       if (product.stock_quantity < item.quantity) {
-        throw new Error(`Insufficient stock for ${product.name}. Available: ${product.stock_quantity}`);
+        throw new Error(
+          `Insufficient stock for ${product.name}. Available: ${product.stock_quantity}`,
+        );
       }
 
       const unitPrice = item.unitPrice || product.unit_price;
@@ -76,12 +79,22 @@ const createSale = async ({
     const taxAmount = taxableAmount * 0.12; // 12% VAT
     const totalAmount = taxableAmount + taxAmount;
 
+    // Calculate change
+    const paymentReceived = amountPaid || totalAmount;
+    const changeGiven = paymentReceived - totalAmount;
+
+    if (changeGiven < 0) {
+      throw new Error(
+        `Insufficient payment. Total: ${formatCurrency(totalAmount)}, Paid: ${formatCurrency(paymentReceived)}`,
+      );
+    }
+
     // Create sale record
     const saleResult = await database.run(
       `INSERT INTO sales 
        (transaction_number, cashier_id, subtotal, discount, tax, total_amount, 
-        payment_method, customer_id, notes, store_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        payment_method, payment_received, change_given, customer_id, notes, store_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         transactionNumber,
         cashierId,
@@ -90,6 +103,8 @@ const createSale = async ({
         taxAmount,
         totalAmount,
         paymentMethod,
+        paymentReceived,
+        changeGiven,
         customerId,
         notes,
         storeId,
@@ -116,12 +131,18 @@ const createSale = async ({
 
     await database.run("COMMIT");
 
-    const newSale = await database.get("SELECT * FROM sales WHERE id = ?", [saleId]);
+    const newSale = await database.get("SELECT * FROM sales WHERE id = ?", [
+      saleId,
+    ]);
 
     return {
       ...newSale,
       items: saleItems,
       formattedTotal: formatCurrency(totalAmount),
+      formattedPaymentReceived: formatCurrency(paymentReceived),
+      formattedChangeGiven: formatCurrency(changeGiven),
+      paymentReceived,
+      changeGiven,
     };
   } catch (error) {
     await database.run("ROLLBACK");
@@ -175,7 +196,7 @@ const getSales = async ({
     ORDER BY s.created_at DESC 
     LIMIT ? OFFSET ?
   `;
-  
+
   const sales = await database.all(query, [...params, parseInt(limit), offset]);
 
   return {
@@ -274,9 +295,34 @@ const cancelSale = async (id, reason, storeId) => {
   }
 };
 
+/**
+ * Get daily sales summary (revenue and count)
+ */
+const getDailySummary = async (storeId) => {
+  const database = await initializeDb();
+  const today = new Date().toISOString().split("T")[0];
+
+  const result = await database.get(
+    `SELECT 
+       COUNT(*) as sale_count,
+       SUM(total_amount) as total_revenue
+     FROM sales
+     WHERE (store_id IS NULL OR store_id = ?)
+     AND date(created_at) = ?
+     AND status = 'completed'`,
+    [storeId, today],
+  );
+
+  return {
+    total_revenue: parseFloat(result?.total_revenue || 0),
+    sale_count: parseInt(result?.sale_count || 0),
+  };
+};
+
 module.exports = {
   createSale,
   getSales,
   getSaleById,
   cancelSale,
+  getDailySummary,
 };

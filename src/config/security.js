@@ -89,21 +89,21 @@ const sanitizeInput = (input) => {
 // Rate limiting configuration
 const rateLimitConfig = {
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  max: 200, // Limit each IP to 200 requests per windowMs
   message: "Too many requests from this IP, please try again later.",
 };
 
 // Stricter rate limit for auth endpoints
 const authRateLimitConfig = {
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // Limit each IP to 10 login attempts per windowMs
+  max: 20, // Limit each IP to 20 login attempts per windowMs
   message: "Too many login attempts, please try again later.",
 };
 
 // Even stricter rate limit for scanner endpoints
 const scannerRateLimitConfig = {
   windowMs: 60 * 1000, // 1 minute
-  max: 60, // Limit each IP to 60 scan requests per minute
+  max: 120, // Limit each IP to 120 scan requests per minute
   message: "Too many scan requests, please slow down.",
 };
 

@@ -90,10 +90,20 @@ const cancelSale = async (req, res) => {
   }
 };
 
+const getDailySummary = async (req, res) => {
+  try {
+    const summary = await salesService.getDailySummary(req.user.storeId);
+    res.json(success(summary));
+  } catch (err) {
+    res.status(500).json(error(err.message));
+  }
+};
+
 module.exports = {
   createSale,
   getSales,
   getSaleById,
   getReceipt,
   cancelSale,
+  getDailySummary,
 };
