@@ -37,8 +37,13 @@ const create = async (productData, storeId) => {
       const barcodeService = require("./barcode.service");
       const { uploadBase64Image } = require("../config/cloudinary");
 
-      const barcodeData = await barcodeService.generateBarcodeImage({ barcode });
-      const uploadResult = await uploadBase64Image(barcodeData.dataUrl, "barcodes");
+      const barcodeData = await barcodeService.generateBarcodeImage({
+        barcode,
+      });
+      const uploadResult = await uploadBase64Image(
+        barcodeData.dataUrl,
+        "barcodes",
+      );
       finalBarcodeImageUrl = uploadResult.url;
     } catch (error) {
       console.error("Auto barcode generation failed:", error);
@@ -69,23 +74,27 @@ const create = async (productData, storeId) => {
     ],
   );
 
-  const product = await database.get(
-    "SELECT * FROM products WHERE id = ?",
-    [result.lastID]
-  );
+  const product = await database.get("SELECT * FROM products WHERE id = ?", [
+    result.lastID,
+  ]);
 
   return product;
 };
 
 const findById = async (id) => {
   const database = await initializeDb();
-  const product = await database.get("SELECT * FROM products WHERE id = ?", [id]);
+  const product = await database.get("SELECT * FROM products WHERE id = ?", [
+    id,
+  ]);
   return product || null;
 };
 
 const findByBarcode = async (barcode) => {
   const database = await initializeDb();
-  const product = await database.get("SELECT * FROM products WHERE barcode = ?", [barcode]);
+  const product = await database.get(
+    "SELECT * FROM products WHERE barcode = ?",
+    [barcode],
+  );
   return product || null;
 };
 
@@ -137,7 +146,12 @@ const findAll = async (options = {}) => {
   const total = countResult.count;
 
   // Get paginated results
-  const resultQuery = `SELECT * FROM products
+  const resultQuery = `SELECT 
+    id, barcode, name, description, category, unit_price, wholesale_price,
+    COALESCE(stock_quantity, 0) as stock_quantity, low_stock_threshold, 
+    image_urls, barcode_image_url, supplier_id, expiry_date, store_id, 
+    created_at, updated_at 
+   FROM products
                        WHERE ${whereClause}
                        ORDER BY ${sortField} ${order}
                        LIMIT ? OFFSET ?`;
@@ -176,12 +190,17 @@ const update = async (id, productData) => {
 
   // Regenerate barcode image if barcode changed and no URL provided
   if (barcode && !finalBarcodeImageUrl) {
-     try {
+    try {
       const barcodeService = require("./barcode.service");
       const { uploadBase64Image } = require("../config/cloudinary");
 
-      const barcodeData = await barcodeService.generateBarcodeImage({ barcode });
-      const uploadResult = await uploadBase64Image(barcodeData.dataUrl, "barcodes");
+      const barcodeData = await barcodeService.generateBarcodeImage({
+        barcode,
+      });
+      const uploadResult = await uploadBase64Image(
+        barcodeData.dataUrl,
+        "barcodes",
+      );
       finalBarcodeImageUrl = uploadResult.url;
     } catch (error) {
       console.error("Auto barcode regeneration failed:", error);
@@ -221,7 +240,9 @@ const update = async (id, productData) => {
     ],
   );
 
-  const product = await database.get("SELECT * FROM products WHERE id = ?", [id]);
+  const product = await database.get("SELECT * FROM products WHERE id = ?", [
+    id,
+  ]);
   return product || null;
 };
 
@@ -242,14 +263,16 @@ const updateStock = async (id, quantityChange) => {
     [quantityChange, id],
   );
 
-  const product = await database.get("SELECT * FROM products WHERE id = ?", [id]);
+  const product = await database.get("SELECT * FROM products WHERE id = ?", [
+    id,
+  ]);
   return product || null;
 };
 
 const getCategories = async () => {
   const database = await initializeDb();
   const rows = await database.all(
-    "SELECT DISTINCT category FROM products WHERE category IS NOT NULL ORDER BY category"
+    "SELECT DISTINCT category FROM products WHERE category IS NOT NULL ORDER BY category",
   );
   return rows.map((row) => row.category);
 };
@@ -295,7 +318,7 @@ const bulkImport = async (products, storeId) => {
 
       const insertedProduct = await database.get(
         "SELECT * FROM products WHERE id = ?",
-        [result.lastID]
+        [result.lastID],
       );
       results.push(insertedProduct);
     }

@@ -1,5 +1,11 @@
 const jwt = require("jsonwebtoken");
 const { initializeDatabase } = require("../config/database");
+const {
+  error: apiError,
+  unauthorized,
+  forbidden,
+} = require("../utils/apiResponse");
+const { AUTH_ERRORS, PERMISSION_ERRORS } = require("../utils/errorConstants");
 
 const JWT_SECRET =
   process.env.JWT_SECRET || "my-super-secret-jwt-key-change-in-production";
@@ -23,10 +29,7 @@ const authenticateToken = async (req, res, next) => {
   const token = authHeader && authHeader.split(" ")[1];
 
   if (!token) {
-    return res.status(401).json({
-      success: false,
-      error: "Access denied. No token provided.",
-    });
+    return res.status(401).json(unauthorized(AUTH_ERRORS.NO_TOKEN.message));
   }
 
   try {
@@ -42,19 +45,17 @@ const authenticateToken = async (req, res, next) => {
     );
 
     if (!userResult) {
-      return res.status(401).json({
-        success: false,
-        error: "User not found.",
-      });
+      return res
+        .status(401)
+        .json(unauthorized(AUTH_ERRORS.USER_NOT_FOUND.message));
     }
 
     const user = userResult;
 
     if (!user.is_active) {
-      return res.status(401).json({
-        success: false,
-        error: "User account is deactivated.",
-      });
+      return res
+        .status(401)
+        .json(unauthorized(AUTH_ERRORS.USER_DEACTIVATED.message));
     }
 
     req.user = {
@@ -65,19 +66,26 @@ const authenticateToken = async (req, res, next) => {
     };
 
     next();
-  } catch (error) {
-    if (error.name === "TokenExpiredError") {
-      return res.status(401).json({
-        success: false,
-        error: "Token expired.",
-        code: "TOKEN_EXPIRED",
-      });
+  } catch (err) {
+    if (err.name === "TokenExpiredError") {
+      return res
+        .status(401)
+        .json(
+          apiError(
+            AUTH_ERRORS.TOKEN_EXPIRED.message,
+            AUTH_ERRORS.TOKEN_EXPIRED.code,
+          ),
+        );
     }
 
-    return res.status(403).json({
-      success: false,
-      error: "Invalid token.",
-    });
+    return res
+      .status(403)
+      .json(
+        apiError(
+          AUTH_ERRORS.INVALID_TOKEN.message,
+          AUTH_ERRORS.INVALID_TOKEN.code,
+        ),
+      );
   }
 };
 
@@ -86,10 +94,14 @@ const verifyRefreshToken = async (req, res, next) => {
   const { refreshToken } = req.body;
 
   if (!refreshToken) {
-    return res.status(401).json({
-      success: false,
-      error: "Refresh token required.",
-    });
+    return res
+      .status(401)
+      .json(
+        apiError(
+          AUTH_ERRORS.REFRESH_TOKEN_REQUIRED.message,
+          AUTH_ERRORS.REFRESH_TOKEN_REQUIRED.code,
+        ),
+      );
   }
 
   try {
@@ -104,19 +116,27 @@ const verifyRefreshToken = async (req, res, next) => {
     );
 
     if (!userResult || !userResult.is_active) {
-      return res.status(403).json({
-        success: false,
-        error: "Invalid refresh token.",
-      });
+      return res
+        .status(403)
+        .json(
+          apiError(
+            AUTH_ERRORS.INVALID_REFRESH_TOKEN.message,
+            AUTH_ERRORS.INVALID_REFRESH_TOKEN.code,
+          ),
+        );
     }
 
     req.userId = decoded.userId;
     next();
-  } catch (error) {
-    return res.status(403).json({
-      success: false,
-      error: "Invalid refresh token.",
-    });
+  } catch (err) {
+    return res
+      .status(403)
+      .json(
+        apiError(
+          AUTH_ERRORS.INVALID_REFRESH_TOKEN.message,
+          AUTH_ERRORS.INVALID_REFRESH_TOKEN.code,
+        ),
+      );
   }
 };
 
@@ -124,17 +144,15 @@ const verifyRefreshToken = async (req, res, next) => {
 const requireRole = (...allowedRoles) => {
   return (req, res, next) => {
     if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        error: "Authentication required.",
-      });
+      return res
+        .status(401)
+        .json(forbidden(PERMISSION_ERRORS.AUTHENTICATION_REQUIRED.message));
     }
 
     if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({
-        success: false,
-        error: "Insufficient permissions.",
-      });
+      return res
+        .status(403)
+        .json(forbidden(PERMISSION_ERRORS.INSUFFICIENT_PERMISSIONS.message));
     }
 
     next();
@@ -145,10 +163,9 @@ const requireRole = (...allowedRoles) => {
 const requirePermission = (permission) => {
   return (req, res, next) => {
     if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        error: "Authentication required.",
-      });
+      return res
+        .status(401)
+        .json(forbidden(PERMISSION_ERRORS.AUTHENTICATION_REQUIRED.message));
     }
 
     // Owners have all permissions
@@ -159,10 +176,14 @@ const requirePermission = (permission) => {
     // Check role permissions
     const { hasPermission } = require("../config/security");
     if (!hasPermission(req.user.role, permission)) {
-      return res.status(403).json({
-        success: false,
-        error: `Permission denied: ${permission}`,
-      });
+      return res
+        .status(403)
+        .json(
+          apiError(
+            `${PERMISSION_ERRORS.PERMISSION_DENIED.message}: ${permission}`,
+            PERMISSION_ERRORS.PERMISSION_DENIED.code,
+          ),
+        );
     }
 
     next();

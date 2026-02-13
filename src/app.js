@@ -19,7 +19,9 @@ const reportsRoutes = require("./routes/reports.routes");
 
 // Import middleware
 const { apiRateLimiter } = require("./middleware/rateLimiter");
-const { error } = require("./utils/apiResponse");
+const { errorHandler } = require("./middleware/errorHandler");
+const { error, notFound } = require("./utils/apiResponse");
+const { SERVER_ERRORS } = require("./utils/errorConstants");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -94,23 +96,11 @@ app.use("/api/v1/reports", reportsRoutes);
 
 // 404 handler
 app.use((req, res) => {
-  res.status(404).json(error("Endpoint not found"));
+  res.status(404).json(notFound("Endpoint not found"));
 });
 
-// Global error handler
-app.use((err, req, res, next) => {
-  logger.error("Unhandled error:", err);
-
-  res
-    .status(err.status || 500)
-    .json(
-      error(
-        process.env.NODE_ENV === "production"
-          ? "Internal server error"
-          : err.message,
-      ),
-    );
-});
+// Global error handler (use the centralized error handler)
+app.use(errorHandler);
 
 // Start server
 const startServer = async () => {

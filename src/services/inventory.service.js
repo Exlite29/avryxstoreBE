@@ -114,12 +114,12 @@ const getAllInventory = async (options = {}) => {
   // Get all products with their total inventory (LEFT JOIN to include products without inventory)
   const query = `
     SELECT 
-      p.id as product_id,
-      p.name as product_name,
+      p.id as id,
+      p.name as name,
       p.barcode,
       p.unit_price,
       p.low_stock_threshold,
-      p.stock_quantity,
+      COALESCE(p.stock_quantity, 0) as stock_quantity,
       COALESCE(SUM(i.quantity), 0) as total_inventory_qty,
       MIN(i.expiry_date) as earliest_expiry
     FROM products p
