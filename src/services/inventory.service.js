@@ -117,6 +117,7 @@ const getAllInventory = async (options = {}) => {
       p.id as id,
       p.name as name,
       p.barcode,
+      p.image_urls,
       p.unit_price,
       p.low_stock_threshold,
       COALESCE(p.stock_quantity, 0) as stock_quantity,
@@ -132,6 +133,27 @@ const getAllInventory = async (options = {}) => {
 
   const rows = await database.all(query, [...params, parseInt(limit), offset]);
 
+  // Process rows to extract the first image URL
+  const processedRows = rows.map((row) => {
+    let imageUrl = null;
+    try {
+      if (row.image_urls) {
+        const urls = JSON.parse(row.image_urls);
+        if (Array.isArray(urls) && urls.length > 0) {
+          imageUrl = urls[0];
+        } else if (typeof urls === "string") {
+          imageUrl = urls;
+        }
+      }
+    } catch (e) {
+      // Fallback if not valid JSON, treat as string if it looks like a url
+      if (row.image_urls && row.image_urls.startsWith("http")) {
+        imageUrl = row.image_urls;
+      }
+    }
+    return { ...row, image_url: imageUrl };
+  });
+
   // Get total count
   const countQuery = `
     SELECT COUNT(*) as count
@@ -142,7 +164,7 @@ const getAllInventory = async (options = {}) => {
   const total = parseInt(countResult.count);
 
   return {
-    inventory: rows,
+    inventory: processedRows,
     pagination: {
       page: parseInt(page),
       limit: parseInt(limit),
