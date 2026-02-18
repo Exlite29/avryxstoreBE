@@ -238,8 +238,10 @@ const initializeDatabase = async () => {
       const stmt = db.prepare(sql);
       stmt.bind(params);
       stmt.step();
+      const lastID = stmt.getLastInsertedRowId();
       stmt.free();
       saveDatabase();
+      return { lastID };
     },
 
     close: () => {
