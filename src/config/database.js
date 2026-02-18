@@ -1,17 +1,33 @@
-const sqlite3 = require('sqlite3').verbose();
-const { open } = require('sqlite');
-const path = require('path');
-const bcrypt = require('bcryptjs');
+const initSqlJs = require("sql.js");
+const path = require("path");
+const fs = require("fs");
+const bcrypt = require("bcryptjs");
+
+const DB_PATH = path.join(__dirname, "..", "sari_sari_store.db");
 
 // Open database
 const initializeDatabase = async () => {
-  const db = await open({
-    filename: path.join(__dirname, '..', 'sari_sari_store.db'),
-    driver: sqlite3.Database
-  });
+  // Initialize SQL.js
+  const SQL = await initSqlJs();
+
+  // Load existing database or create new one
+  let db;
+  if (fs.existsSync(DB_PATH)) {
+    const fileBuffer = fs.readFileSync(DB_PATH);
+    db = new SQL.Database(fileBuffer);
+  } else {
+    db = new SQL.Database();
+  }
+
+  // Helper function to save database to file
+  const saveDatabase = () => {
+    const data = db.export();
+    const buffer = Buffer.from(data);
+    fs.writeFileSync(DB_PATH, buffer);
+  };
 
   // Users table
-  await db.exec(`
+  db.run(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       email VARCHAR(255) UNIQUE NOT NULL,
@@ -26,7 +42,7 @@ const initializeDatabase = async () => {
   `);
 
   // Products table
-  await db.exec(`
+  db.run(`
     CREATE TABLE IF NOT EXISTS products (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       barcode VARCHAR(50) UNIQUE,
@@ -48,7 +64,7 @@ const initializeDatabase = async () => {
   `);
 
   // Inventory table
-  await db.exec(`
+  db.run(`
     CREATE TABLE IF NOT EXISTS inventory (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       product_id INTEGER,
@@ -63,7 +79,7 @@ const initializeDatabase = async () => {
   `);
 
   // Sales table
-  await db.exec(`
+  db.run(`
     CREATE TABLE IF NOT EXISTS sales (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       transaction_number VARCHAR(100) UNIQUE NOT NULL,
@@ -84,7 +100,7 @@ const initializeDatabase = async () => {
   `);
 
   // Sales items table
-  await db.exec(`
+  db.run(`
     CREATE TABLE IF NOT EXISTS sales_items (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       sale_id INTEGER,
@@ -98,7 +114,7 @@ const initializeDatabase = async () => {
   `);
 
   // Barcodes table
-  await db.exec(`
+  db.run(`
     CREATE TABLE IF NOT EXISTS barcodes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       barcode VARCHAR(50) UNIQUE NOT NULL,
@@ -110,7 +126,7 @@ const initializeDatabase = async () => {
   `);
 
   // Product scans table
-  await db.exec(`
+  db.run(`
     CREATE TABLE IF NOT EXISTS product_scans (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       scan_type VARCHAR(20),
@@ -126,7 +142,7 @@ const initializeDatabase = async () => {
   `);
 
   // Transactions table for audit logging
-  await db.exec(`
+  db.run(`
     CREATE TABLE IF NOT EXISTS transactions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       transaction_type VARCHAR(50) NOT NULL,
@@ -141,7 +157,7 @@ const initializeDatabase = async () => {
   `);
 
   // Notifications table
-  await db.exec(`
+  db.run(`
     CREATE TABLE IF NOT EXISTS notifications (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
@@ -156,7 +172,7 @@ const initializeDatabase = async () => {
   `);
 
   // Stores table
-  await db.exec(`
+  db.run(`
     CREATE TABLE IF NOT EXISTS stores (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name VARCHAR(255) NOT NULL,
@@ -169,15 +185,73 @@ const initializeDatabase = async () => {
   `);
 
   // Create indexes
-  await db.exec("CREATE INDEX IF NOT EXISTS idx_products_barcode ON products(barcode)");
-  await db.exec("CREATE INDEX IF NOT EXISTS idx_products_category ON products(category)");
-  await db.exec("CREATE INDEX IF NOT EXISTS idx_sales_created_at ON sales(created_at)");
-  await db.exec("CREATE INDEX IF NOT EXISTS idx_inventory_product_id ON inventory(product_id)");
+  db.run(
+    "CREATE INDEX IF NOT EXISTS idx_products_barcode ON products(barcode)",
+  );
+  db.run(
+    "CREATE INDEX IF NOT EXISTS idx_products_category ON products(category)",
+  );
+  db.run(
+    "CREATE INDEX IF NOT EXISTS idx_sales_created_at ON sales(created_at)",
+  );
+  db.run(
+    "CREATE INDEX IF NOT EXISTS idx_inventory_product_id ON inventory(product_id)",
+  );
+
+  // Save the database
+  saveDatabase();
+
+  // Create a wrapper to provide sqlite-like API
+  const dbWrapper = {
+    db,
+    saveDatabase,
+
+    exec: (sql) => {
+      db.run(sql);
+      saveDatabase();
+    },
+
+    get: (sql, params = []) => {
+      const stmt = db.prepare(sql);
+      stmt.bind(params);
+      if (stmt.step()) {
+        const row = stmt.getAsObject();
+        stmt.free();
+        return row;
+      }
+      stmt.free();
+      return null;
+    },
+
+    all: (sql, params = []) => {
+      const stmt = db.prepare(sql);
+      stmt.bind(params);
+      const results = [];
+      while (stmt.step()) {
+        results.push(stmt.getAsObject());
+      }
+      stmt.free();
+      return results;
+    },
+
+    run: (sql, params = []) => {
+      const stmt = db.prepare(sql);
+      stmt.bind(params);
+      stmt.step();
+      stmt.free();
+      saveDatabase();
+    },
+
+    close: () => {
+      saveDatabase();
+      db.close();
+    },
+  };
 
   console.log("Database initialized successfully");
-  return db;
+  return dbWrapper;
 };
 
 module.exports = {
-  initializeDatabase
+  initializeDatabase,
 };

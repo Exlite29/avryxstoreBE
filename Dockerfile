@@ -10,11 +10,8 @@ RUN apk add --no-cache vips-dev libpng-dev python3 make g++ libc6-compat
 # Copy package files
 COPY package*.json ./
 
-# Install npm dependencies (ignore scripts to avoid native builds)
-RUN npm ci --only=production --ignore-scripts
-
-# Install sharp with prebuilt binaries
-RUN npm install --only=production --prefer-offline --no-audit
+# Install npm dependencies
+RUN npm ci --only=production
 
 # Copy source code
 COPY . .
