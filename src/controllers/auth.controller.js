@@ -26,7 +26,7 @@ const register = async (req, res) => {
     console.error("Registration error:", err.message);
 
     // Map service errors to appropriate responses
-    if (err.message && err.message.includes("already exists")) {
+    if (err.message.includes("already exists")) {
       return res
         .status(409)
         .json(
