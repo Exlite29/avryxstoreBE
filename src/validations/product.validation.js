@@ -44,7 +44,8 @@ const createProductSchema = {
     optional: true,
     isInt: { min: 0 },
     toInt: true,
-    errorMessage: "Low stock threshold must be a non-negative integer",
+    errorMessage:
+      "Low stock threshold must be a non-negative integer (0 allowed)",
   },
   supplier_id: {
     optional: true,
@@ -72,6 +73,12 @@ const updateProductSchema = {
     isLength: { max: 50 },
     errorMessage: "Barcode must be less than 50 characters",
   },
+  description: {
+    optional: true,
+    trim: true,
+    isLength: { max: 2000 },
+    errorMessage: "Description must be less than 2000 characters",
+  },
   category: {
     optional: true,
     trim: true,
@@ -84,11 +91,45 @@ const updateProductSchema = {
     toFloat: true,
     errorMessage: "Unit price must be a positive number",
   },
+  wholesale_price: {
+    optional: true,
+    isFloat: { min: 0 },
+    toFloat: true,
+    errorMessage: "Wholesale price must be a positive number",
+  },
   stock_quantity: {
     optional: true,
     isInt: { min: 0 },
     toInt: true,
     errorMessage: "Stock quantity must be a non-negative integer",
+  },
+  low_stock_threshold: {
+    optional: true,
+    isInt: { min: 0 },
+    toInt: true,
+    errorMessage:
+      "Low stock threshold must be a non-negative integer (0 allowed)",
+  },
+  supplier_id: {
+    optional: true,
+    isUUID: true,
+    errorMessage: "Supplier ID must be a valid UUID",
+  },
+  expiry_date: {
+    optional: true,
+    isISO8601: true,
+    toDate: true,
+    errorMessage: "Expiry date must be a valid date",
+  },
+  image_urls: {
+    optional: true,
+    isArray: { min: 0 },
+    errorMessage: "Image URLs must be an array",
+  },
+  barcode_image_url: {
+    optional: true,
+    isURL: true,
+    errorMessage: "Barcode image URL must be a valid URL",
   },
 };
 
@@ -145,15 +186,44 @@ const bulkImportSchema = {
     trim: true,
     isLength: { max: 50 },
   },
+  "products.*.description": {
+    optional: true,
+    trim: true,
+    isLength: { max: 2000 },
+  },
+  "products.*.category": {
+    optional: true,
+    trim: true,
+    isLength: { max: 100 },
+  },
   "products.*.unit_price": {
     isFloat: { min: 0 },
     toFloat: true,
     errorMessage: "Valid unit price is required",
   },
+  "products.*.wholesale_price": {
+    optional: true,
+    isFloat: { min: 0 },
+    toFloat: true,
+  },
   "products.*.stock_quantity": {
     optional: true,
     isInt: { min: 0 },
     toInt: true,
+  },
+  "products.*.low_stock_threshold": {
+    optional: true,
+    isInt: { min: 0 },
+    toInt: true,
+  },
+  "products.*.supplier_id": {
+    optional: true,
+    isUUID: true,
+  },
+  "products.*.expiry_date": {
+    optional: true,
+    isISO8601: true,
+    toDate: true,
   },
 };
 
