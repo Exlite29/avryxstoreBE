@@ -1,16 +1,13 @@
-# Use Node.js 18 Alpine image
-FROM node:18-alpine
+# Use Node.js 18 Debian slim image (glibc => native modules use prebuilt binaries)
+FROM node:18-bookworm-slim
 
 # Set working directory
 WORKDIR /app
 
-# Install dependencies for sharp (image processing)
-RUN apk add --no-cache vips-dev libpng-dev python3 make g++ libc6-compat
-
 # Copy package files
 COPY package*.json ./
 
-# Install npm dependencies (runs postinstall to compile native modules like sqlite3)
+# Install npm dependencies (downloads prebuilt binaries for sqlite3/sharp)
 RUN npm ci --only=production --no-audit --no-fund
 
 # Copy source code
@@ -29,7 +26,7 @@ EXPOSE 3000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
+  CMD node -e "require('node:http').get('http://localhost:3000/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
 
 # Start the application
 CMD ["node", "src/app.js"]
