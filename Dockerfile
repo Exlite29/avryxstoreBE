@@ -10,11 +10,8 @@ RUN apk add --no-cache vips-dev libpng-dev python3 make g++ libc6-compat
 # Copy package files
 COPY package*.json ./
 
-# Install npm dependencies (ignore scripts to avoid native builds)
-RUN npm ci --only=production --ignore-scripts
-
-# Install sharp with prebuilt binaries
-RUN npm install --only=production --prefer-offline --no-audit
+# Install npm dependencies (runs postinstall to compile native modules like sqlite3)
+RUN npm ci --only=production --no-audit --no-fund
 
 # Copy source code
 COPY . .
@@ -25,6 +22,7 @@ RUN mkdir -p uploads logs
 # Set environment variables
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV DATABASE_URL="postgresql://bootstrap:bootstrap@localhost:5432/prisma?schema=public"
 
 # Expose port
 EXPOSE 3000
