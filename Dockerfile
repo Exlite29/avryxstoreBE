@@ -1,14 +1,14 @@
-# Use Bun 1.x Debian slim image (glibc => native modules use prebuilt binaries)
-FROM oven/bun:1-debian
+# Use Bun pinned to match the committed bun.lock (glibc => native modules use prebuilt binaries)
+FROM oven/bun:1.4.2-debian
 
 # Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy package files (Bun lockfile only; no npm package-lock.json)
+COPY package.json bun.lock ./
 
 # Install dependencies (downloads prebuilt binaries for sharp/native modules)
-RUN bun install --production --no-audit --no-fund
+RUN bun install --production --no-audit --no-fund --frozen-lockfile
 
 # Copy source code
 COPY . .
