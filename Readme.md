@@ -289,9 +289,11 @@ Setup & Deployment
 Environment Variables:
 env
 
-# Database persistence (local SQLite)
+# Database
 
-DB_PATH=/data/sari_sari_store.db
+# PostgreSQL is used in production. Set DATABASE_URL to a hosted Postgres
+# (e.g. Neon, Supabase). Unset, the app falls back to local SQLite.
+DATABASE_URL=postgresql://user:password@host/dbname
 
 # Scanner Configuration
 
@@ -312,12 +314,13 @@ STORE_ID=store_001
 STORE_NAME="My Sari-Sari Store"
 
 Production Data Persistence
-The app stores all data in a local SQLite file. On ephemeral hosts (e.g. Render free/container filesystems) that file is wiped on every deploy or restart, so attach a persistent disk and point DB_PATH at it:
+Storing data in a local SQLite file on hosted containers (e.g. Render) means data is wiped on every deploy. For durable storage:
 
-1. In Render, attach a Persistent Disk to the service and mount it at /data (mount path: /data).
-2. Set the environment variable DB_PATH=/data/sari_sari_store.db (already the Dockerfile default).
+1. Create a free PostgreSQL database (Neon or Supabase).
+2. In Render, set the DATABASE_URL environment variable on the avryxstore-be service to your Postgres connection string.
+3. Redeploy. The app will auto-create all tables on startup (no SQLite disk needed).
 
-With docker-compose locally, a named volume sari_data:/data is already configured.
+The app automatically uses PostgreSQL when DATABASE_URL is set, and falls back to local SQLite for development.
 
 Quick Start Commands:
 bash

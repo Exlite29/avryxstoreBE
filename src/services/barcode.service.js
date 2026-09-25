@@ -1,4 +1,4 @@
-const { initializeDatabase } = require("../config/database");
+const { initializeDatabase, sqlBool } = require("../config/database");
 const {
   isValidBarcode,
   validateEAN13Checksum,
@@ -104,7 +104,7 @@ const saveBarcodeMapping = async ({
       `UPDATE barcodes 
        SET product_id = ?, barcode_type = ?, is_primary = ?
        WHERE barcode = ?`,
-      [productId, barcodeType, isPrimary ? 1 : 0, barcode],
+      [productId, barcodeType, sqlBool(isPrimary), barcode],
     );
     return await database.get("SELECT * FROM barcodes WHERE barcode = ?", [barcode]);
   }
@@ -113,7 +113,7 @@ const saveBarcodeMapping = async ({
   const result = await database.run(
     `INSERT INTO barcodes (barcode, product_id, barcode_type, is_primary)
      VALUES (?, ?, ?, ?)`,
-    [barcode, productId, barcodeType, isPrimary ? 1 : 0],
+    [barcode, productId, barcodeType, sqlBool(isPrimary)],
   );
 
   return await database.get("SELECT * FROM barcodes WHERE id = ?", [result.lastID]);
@@ -162,14 +162,14 @@ const setPrimaryBarcode = async (productId, barcode) => {
 
     // Reset all barcodes for this product to non-primary
     await database.run(
-      "UPDATE barcodes SET is_primary = 0 WHERE product_id = ?",
-      [productId],
+      "UPDATE barcodes SET is_primary = ? WHERE product_id = ?",
+      [sqlBool(false), productId],
     );
 
     // Set new primary
     await database.run(
-      "UPDATE barcodes SET is_primary = 1 WHERE product_id = ? AND barcode = ?",
-      [productId, barcode],
+      "UPDATE barcodes SET is_primary = ? WHERE product_id = ? AND barcode = ?",
+      [sqlBool(true), productId, barcode],
     );
 
     // Also update product's primary barcode

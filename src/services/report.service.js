@@ -1,4 +1,4 @@
-const { initializeDatabase } = require("../config/database");
+const { initializeDatabase, sqlDate } = require("../config/database");
 
 let db;
 const initializeDb = async () => {
@@ -36,7 +36,7 @@ const getSalesReport = async (options = {}) => {
 
   const results = await database.all(
     `SELECT 
-       strftime('${strftimeFormat}', s.created_at) as period,
+       ${sqlDate.strftime(strftimeFormat, "s.created_at")} as period,
        COUNT(*) as transaction_count,
        SUM(s.total_amount) as total_sales,
        SUM(s.subtotal) as subtotal,
@@ -156,7 +156,7 @@ const getInventoryReport = async (options = {}) => {
 
   if (expiringSoon) {
     const days = expiringSoon.days || 30;
-    whereClauses.push(`p.expiry_date IS NOT NULL AND p.expiry_date <= date('now', '+${days} days')`);
+    whereClauses.push(`p.expiry_date IS NOT NULL AND p.expiry_date <= ${sqlDate.addDays(days)}`);
   }
 
   const whereClause = whereClauses.join(" AND ");
@@ -223,7 +223,7 @@ const getDailySalesSummary = async (date = new Date(), storeId) => {
        MIN(total_amount) as lowest_transaction
      FROM sales
      WHERE (store_id IS NULL OR store_id = ?)
-     AND date(created_at) = ?
+     AND ${sqlDate.dateOf("created_at")} = ?
      AND status = 'completed'`,
     [storeId, targetDate],
   );
@@ -231,12 +231,12 @@ const getDailySalesSummary = async (date = new Date(), storeId) => {
   // Get hourly breakdown
   const hourlyRows = await database.all(
     `SELECT 
-       strftime('%H', created_at) as hour,
+       ${sqlDate.strftime("%H", "created_at")} as hour,
        COUNT(*) as transactions,
        SUM(total_amount) as sales
      FROM sales
      WHERE (store_id IS NULL OR store_id = ?)
-     AND date(created_at) = ?
+     AND ${sqlDate.dateOf("created_at")} = ?
      AND status = 'completed'
      GROUP BY hour
      ORDER BY hour`,

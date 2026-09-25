@@ -1,4 +1,4 @@
-const { initializeDatabase } = require("../config/database");
+const { initializeDatabase, sqlDate } = require("../config/database");
 const { formatCurrency } = require("../utils/helpers");
 
 let db;
@@ -29,7 +29,7 @@ const createSale = async ({
 
     // Generate transaction number
     const txnResult = await database.get(
-      "SELECT COUNT(*) as count FROM sales WHERE date(created_at) = date('now')",
+      `SELECT COUNT(*) as count FROM sales WHERE ${sqlDate.dateOf("created_at")} = ${sqlDate.today()}`,
     );
     const transactionNumber = `TXN-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${String(parseInt(txnResult.count) + 1).padStart(5, "0")}`;
 
@@ -308,7 +308,7 @@ const getDailySummary = async (storeId) => {
        SUM(total_amount) as total_revenue
      FROM sales
      WHERE (store_id IS NULL OR store_id = ?)
-     AND date(created_at) = ?
+     AND ${sqlDate.dateOf("created_at")} = ?
      AND status = 'completed'`,
     [storeId, today],
   );

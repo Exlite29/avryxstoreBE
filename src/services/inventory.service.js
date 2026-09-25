@@ -1,4 +1,4 @@
-const { initializeDatabase } = require("../config/database");
+const { initializeDatabase, sqlDate } = require("../config/database");
 
 let db;
 const initializeDb = async () => {
@@ -105,7 +105,7 @@ const getAllInventory = async (options = {}) => {
   if (expiringSoon) {
     const days = expiringSoon.days || 30;
     whereClauses.push(
-      `i.expiry_date IS NOT NULL AND i.expiry_date <= date('now', '+${days} days')`,
+      `i.expiry_date IS NOT NULL AND i.expiry_date <= ${sqlDate.addDays(days)}`,
     );
   }
 
@@ -156,8 +156,9 @@ const getAllInventory = async (options = {}) => {
 
   // Get total count
   const countQuery = `
-    SELECT COUNT(*) as count
+    SELECT COUNT(DISTINCT p.id) as count
     FROM products p
+    LEFT JOIN inventory i ON p.id = i.product_id
     WHERE ${whereClause}
   `;
   const countResult = await database.get(countQuery, params);

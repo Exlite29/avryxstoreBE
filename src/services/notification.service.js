@@ -1,4 +1,4 @@
-const { initializeDatabase } = require("../config/database");
+const { initializeDatabase, sqlBool } = require("../config/database");
 const { v4: uuidv4 } = require("uuid");
 
 let db;
@@ -62,7 +62,8 @@ const getByUser = async (userId, options = {}) => {
   const params = [userId];
 
   if (unreadOnly) {
-    whereClauses.push("read = 0");
+    whereClauses.push("read = ?");
+    params.push(sqlBool(false));
   }
 
   const whereClause = whereClauses.join(" AND ");
@@ -80,8 +81,8 @@ const getByUser = async (userId, options = {}) => {
 const markAsRead = async (notificationId, userId) => {
   const database = await initializeDb();
   await database.run(
-    "UPDATE notifications SET read = 1 WHERE id = ? AND user_id = ?",
-    [notificationId, userId],
+    "UPDATE notifications SET read = ? WHERE id = ? AND user_id = ?",
+    [sqlBool(true), notificationId, userId],
   );
   return await database.get("SELECT * FROM notifications WHERE id = ? AND user_id = ?", [notificationId, userId]);
 };
@@ -89,7 +90,8 @@ const markAsRead = async (notificationId, userId) => {
 // Mark all notifications as read
 const markAllAsRead = async (userId) => {
   const database = await initializeDb();
-  await database.run("UPDATE notifications SET read = 1 WHERE user_id = ?", [
+  await database.run("UPDATE notifications SET read = ? WHERE user_id = ?", [
+    sqlBool(true),
     userId,
   ]);
   return true;
@@ -99,8 +101,8 @@ const markAllAsRead = async (userId) => {
 const getUnreadCount = async (userId) => {
   const database = await initializeDb();
   const result = await database.get(
-    "SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND read = 0",
-    [userId],
+    "SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND read = ?",
+    [userId, sqlBool(false)],
   );
   return parseInt(result.count || 0);
 };
