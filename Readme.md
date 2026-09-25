@@ -289,6 +289,10 @@ Setup & Deployment
 Environment Variables:
 env
 
+# Database persistence (local SQLite)
+
+DB_PATH=/data/sari_sari_store.db
+
 # Scanner Configuration
 
 BARCODE_SCANNER_API_KEY=your_api_key
@@ -306,6 +310,15 @@ ALLOWED_IMAGE_TYPES=jpg,jpeg,png,webp
 
 STORE_ID=store_001
 STORE_NAME="My Sari-Sari Store"
+
+Production Data Persistence
+The app stores all data in a local SQLite file. On ephemeral hosts (e.g. Render free/container filesystems) that file is wiped on every deploy or restart, so attach a persistent disk and point DB_PATH at it:
+
+1. In Render, attach a Persistent Disk to the service and mount it at /data (mount path: /data).
+2. Set the environment variable DB_PATH=/data/sari_sari_store.db (already the Dockerfile default).
+
+With docker-compose locally, a named volume sari_data:/data is already configured.
+
 Quick Start Commands:
 bash
 

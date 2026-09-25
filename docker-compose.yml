@@ -12,6 +12,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - DB_PATH=/data/sari_sari_store.db
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_NAME=sari_sari_store
@@ -25,6 +26,7 @@ services:
     volumes:
       - ./uploads:/app/uploads
       - ./logs:/app/logs
+      - sari_data:/data
     networks:
       - sari-sari-network
 
@@ -71,3 +73,4 @@ networks:
 volumes:
   postgres_data:
   redis_data:
+  sari_data:

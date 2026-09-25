@@ -4,7 +4,7 @@ const path = require('path');
 
 async function promote() {
   const db = await open({
-    filename: path.join(__dirname, 'src', 'sari_sari_store.db'),
+    filename: process.env.DB_PATH || path.join(__dirname, 'src', 'sari_sari_store.db'),
     driver: sqlite3.Database
   });
 

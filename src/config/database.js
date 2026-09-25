@@ -1,12 +1,17 @@
 const sqlite3 = require('sqlite3').verbose();
 const { open } = require('sqlite');
 const path = require('path');
+const fs = require('fs');
 const bcrypt = require('bcryptjs');
+
+const dbFilePath = process.env.DB_PATH || path.join(__dirname, '..', 'sari_sari_store.db');
+
+fs.mkdirSync(path.dirname(dbFilePath), { recursive: true });
 
 // Open database
 const initializeDatabase = async () => {
   const db = await open({
-    filename: path.join(__dirname, '..', 'sari_sari_store.db'),
+    filename: dbFilePath,
     driver: sqlite3.Database
   });
 

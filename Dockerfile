@@ -14,11 +14,12 @@ RUN npm ci --only=production --no-audit --no-fund
 COPY . .
 
 # Create necessary directories
-RUN mkdir -p uploads logs
+RUN mkdir -p uploads logs /data
 
 # Set environment variables
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV DB_PATH=/data/sari_sari_store.db
 ENV DATABASE_URL="postgresql://bootstrap:bootstrap@localhost:5432/prisma?schema=public"
 
 # Expose port
