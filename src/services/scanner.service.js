@@ -257,6 +257,9 @@ const getScanHistory = async (options = {}) => {
   const database = await initializeDb();
 
   const { page = 1, limit = 20, productId, startDate, endDate, storeId } = options;
+  const product_id = productId ?? options.product_id;
+  const sDate = startDate ?? options.start_date;
+  const eDate = endDate ?? options.end_date;
   const offset = (page - 1) * limit;
 
   let query = `
@@ -268,21 +271,21 @@ const getScanHistory = async (options = {}) => {
   const params = [storeId || null];
   let paramIndex = 2;
 
-  if (productId) {
+  if (product_id) {
     query += ` AND ps.product_id = ?`;
-    params.push(productId);
+    params.push(product_id);
     paramIndex++;
   }
 
-  if (startDate) {
+  if (sDate) {
     query += ` AND ps.created_at >= ?`;
-    params.push(startDate);
+    params.push(sDate);
     paramIndex++;
   }
 
-  if (endDate) {
+  if (eDate) {
     query += ` AND ps.created_at <= ?`;
-    params.push(endDate);
+    params.push(eDate);
     paramIndex++;
   }
 

@@ -201,7 +201,8 @@ const adjustStock = async (productId, adjustment, reason) => {
 
 const getStockMovements = async (productId, options = {}) => {
   const database = await initializeDb();
-  const { startDate, endDate } = options;
+  const startDate = options.startDate ?? options.start_date;
+  const endDate = options.endDate ?? options.end_date;
 
   let whereClauses = ["i.product_id = ?"];
   let params = [productId];

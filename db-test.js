@@ -4,28 +4,22 @@ const { Pool } = require("pg");
 
 console.log("Attempting to connect to database...");
 
-const pool = new Pool({
-  host: process.env.DB_HOST || "localhost",
-  port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME || "sari_sari_store",
-  user: process.env.DB_USER || "postgres",
-  password: process.env.DB_PASSWORD || "password",
-});
+if (!process.env.DATABASE_URL) {
+  console.error("DATABASE_URL is not set. Configure it in your .env file.");
+  process.exit(1);
+}
 
-console.log("Pool created with config:", {
-  host: process.env.DB_HOST || "localhost",
-  port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME || "sari_sari_store",
-  user: process.env.DB_USER || "postgres",
-  password: process.env.DB_PASSWORD ? "[REDACTED]" : "password",
-});
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
-pool.query('SELECT NOW()', (err, res) => {
+console.log("Pool created with DATABASE_URL (credentials redacted).");
+
+pool.query("SELECT NOW()", (err, res) => {
   if (err) {
-    console.error('Database connection error:', err.message);
-    console.error('Error stack:', err.stack);
+    console.error("Database connection error:", err.message);
+    console.error("Error stack:", err.stack);
+    process.exit(1);
   } else {
-    console.log('Database connected successfully!');
+    console.log("Database connected successfully!");
     console.log(res.rows);
   }
   pool.end();

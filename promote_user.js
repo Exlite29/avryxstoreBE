@@ -1,23 +1,26 @@
-const sqlite3 = require('sqlite3').verbose();
-const { open } = require('sqlite');
-const path = require('path');
+require("dotenv").config();
+const { Client } = require("pg");
 
 async function promote() {
-  const db = await open({
-    filename: process.env.DB_PATH || path.join(__dirname, 'src', 'sari_sari_store.db'),
-    driver: sqlite3.Database
-  });
+  const client = new Client({ connectionString: process.env.DATABASE_URL });
+  await client.connect();
 
-  const users = await db.all("SELECT id, email, role FROM users");
+  const { rows: users } = await client.query(
+    "SELECT id, email, role FROM users ORDER BY id"
+  );
   console.log("Current users:", users);
 
   if (users.length > 0) {
     const lastUser = users[users.length - 1];
-    await db.run("UPDATE users SET role = 'owner' WHERE id = ?", [lastUser.id]);
+    await client.query("UPDATE users SET role = 'owner' WHERE id = $1", [
+      lastUser.id,
+    ]);
     console.log(`Successfully promoted ${lastUser.email} to owner!`);
   } else {
     console.log("No users found to promote.");
   }
+
+  await client.end();
 }
 
 promote().catch(console.error);

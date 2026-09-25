@@ -1,5 +1,5 @@
-# Use Node.js 18 Debian slim image (glibc => native modules use prebuilt binaries)
-FROM node:18-bookworm-slim
+# Use Bun 1.x Debian slim image (glibc => native modules use prebuilt binaries)
+FROM oven/bun:1-debian
 
 # Set working directory
 WORKDIR /app
@@ -7,26 +7,25 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install npm dependencies (downloads prebuilt binaries for sqlite3/sharp)
-RUN npm ci --only=production --no-audit --no-fund
+# Install dependencies (downloads prebuilt binaries for sharp/native modules)
+RUN bun install --production --no-audit --no-fund
 
 # Copy source code
 COPY . .
 
 # Create necessary directories
-RUN mkdir -p uploads logs /data
+RUN mkdir -p uploads logs
 
 # Set environment variables
 ENV NODE_ENV=production
 ENV PORT=3000
-ENV DB_PATH=/data/sari_sari_store.db
 
 # Expose port
 EXPOSE 3000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD node -e "require('node:http').get('http://localhost:3000/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
+  CMD ["bun", "-e", "const r=await fetch('http://localhost:3000/health');process.exit(r.status===200?0:1).on('error',()=>process.exit(1))"]
 
 # Start the application
-CMD ["node", "src/app.js"]
+CMD ["bun", "run", "src/app.js"]

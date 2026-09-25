@@ -12,26 +12,33 @@ const initializeDb = async () => {
 /**
  * Create a new sale transaction
  */
-const createSale = async ({
-  items,
-  paymentMethod,
-  amountPaid,
-  discount = 0,
-  customerId,
-  notes,
-  cashierId,
-  storeId,
-}) => {
+const createSale = async (args) => {
+  const {
+    items,
+    paymentMethod,
+    amountPaid,
+    discount = 0,
+    customerId,
+    notes,
+    cashierId,
+    storeId,
+  } = args;
+
+  const payment_method = args.payment_method || paymentMethod || "cash";
+  const amount_paid = args.amount_paid ?? amountPaid;
+  const customer_id = args.customer_id ?? customerId;
+
   const database = await initializeDb();
 
   try {
     await database.run("BEGIN TRANSACTION");
 
-    // Generate transaction number
+    // Generate a unique transaction number (monotonic via MAX(id), safe under concurrency)
+    await database.run("SELECT pg_advisory_xact_lock(hashtext('sales_txn_number'))");
     const txnResult = await database.get(
-      `SELECT COUNT(*) as count FROM sales WHERE ${sqlDate.dateOf("created_at")} = ${sqlDate.today()}`,
+      "SELECT to_char(CURRENT_DATE, 'YYYYMMDD') AS txn_day, COALESCE(MAX(id), 0) + 1 AS next_num FROM sales",
     );
-    const transactionNumber = `TXN-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${String(parseInt(txnResult.count) + 1).padStart(5, "0")}`;
+    const transactionNumber = `TXN-${txnResult.txn_day}-${String(txnResult.next_num).padStart(5, "0")}`;
 
     // Process items and calculate totals
     const saleItems = [];
@@ -53,7 +60,7 @@ const createSale = async ({
         );
       }
 
-      const unitPrice = item.unitPrice || product.unit_price;
+      const unitPrice = item.unitPrice ?? item.unit_price ?? product.unit_price;
       const itemTotal = unitPrice * item.quantity;
 
       saleItems.push({
@@ -80,7 +87,7 @@ const createSale = async ({
     const totalAmount = taxableAmount + taxAmount;
 
     // Calculate change
-    const paymentReceived = amountPaid || totalAmount;
+    const paymentReceived = amount_paid || totalAmount;
     const changeGiven = paymentReceived - totalAmount;
 
     if (changeGiven < 0) {
@@ -102,10 +109,10 @@ const createSale = async ({
         discountAmount,
         taxAmount,
         totalAmount,
-        paymentMethod,
+        payment_method,
         paymentReceived,
         changeGiven,
-        customerId,
+        customer_id,
         notes,
         storeId,
       ],
@@ -153,16 +160,17 @@ const createSale = async ({
 /**
  * Get sales history with filters and pagination
  */
-const getSales = async ({
-  page = 1,
-  limit = 20,
-  startDate,
-  endDate,
-  status,
-  storeId,
-}) => {
-  const database = await initializeDb();
+const getSales = async (args) => {
+  const {
+    page = 1,
+    limit = 20,
+    status,
+    storeId,
+  } = args;
+  const startDate = args.startDate ?? args.start_date;
+  const endDate = args.endDate ?? args.end_date;
   const offset = (page - 1) * limit;
+  const database = await initializeDb();
 
   let whereClauses = ["(s.store_id IS NULL OR s.store_id = ?)"];
   let params = [storeId];
